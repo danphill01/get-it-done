@@ -5,6 +5,15 @@
 <form action="/register" method="post">
     <table>
         <tr>
+            <td>
+                <label for="username">Username</label>
+            </td>
+            <td>
+                <input id="username" type="text" name="username" {% if username %}value= {{ username }}{% endif %} />
+            </td>
+            </td>
+        </tr>              
+        <tr>
             <td><label for="email">Email</label></td>
             <td>
                 <input name="email" type="email" value="{{ email }}">

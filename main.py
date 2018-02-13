@@ -1,5 +1,6 @@
 from flask import Flask, request, redirect, render_template
 from flask_sqlalchemy import SQLAlchemy
+import re
 
 app = Flask(__name__)
 app.config['DEBUG'] = True
@@ -33,14 +34,83 @@ class User(db.Model):
         self.password = password
 
 
+def invalid_string_length(string):
+    return (len(string) < 3 or len(string) > 20)
 
-@app.route('/login')
+
+@app.route('/login', methods=['POST', 'GET'])
 def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        user = User.query.filter_by(email=email).first()
+        if user and user.password == password:
+            # TODO - "remember" that the user has logged in
+            return redirect('/')
+        else:
+            # TODO - explain why login failed
+            return '<h1>Error!</h1>'
+
     return render_template('login.html')
 
 
-@app.route('/register')
+@app.route('/register', methods=['POST', 'GET'])
 def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        verify = request.form['verify']
+
+        # TODO - validate user's data
+        error_msg = ''
+        if not username:
+            error_msg += "error1=username is required&"
+        elif re.search('\s', username):
+            error_msg += "error1=username must not contain space characters so I removed them&"
+            username = re.sub('\s', '', username)
+        elif invalid_string_length(username):
+            error_msg += "error1=username must be between 3 and 20 characters&"
+        if not password:
+            error_msg += "error2=password is required&"
+        elif re.search('\s', password):
+            error_msg += "error2=password must not contain space characters so I removed them&"
+        elif invalid_string_length(password):
+            error_msg += "error2=password must be between 3 and 20 characters&"
+        elif not verify:
+            error_msg += "error3=verify password is required&"
+        elif re.search('\s', verify):
+            error_msg += "error3=verify password must not contain space characters so I removed them&"
+        elif invalid_string_length(verify):
+            error_msg += "error3=verify password must be between 3 and 20 characters&"
+        elif password != verify:
+            error_msg += "error3=verify password does not match password&"
+        if email:
+            if len(email.split('@')) != 2:
+                error_msg += "error4=email must contain exactly one @ symbol&"
+            elif len(email.split('.')) != 2:
+                error_msg += "error4=email must contain exactly one period&"
+            elif re.search('\s', email):
+                error_msg += "error4=email must not contain space characters so I removed them&"
+            elif invalid_string_length(email):
+                error_msg += "error4=email must be between 3 and 20 characters&"
+                
+ 
+
+        existing_user = User.query.filter_by(email=email).first()
+        if not existing_user && not (error_msg):
+            new_user = User(email, password)
+            db.session.add(new_user)
+            db.session.commit()
+
+            return render_template('welcome.html', username = username)
+        else:
+            # TODO - user better response messaging
+            # "<h1>Duplicate user</h1>"
+
+            return redirect('/?' + error_msg + 'username=' + username + '&email=' + email)
+
+
     return render_template('register.html')
 
 
