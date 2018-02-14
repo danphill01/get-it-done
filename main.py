@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, render_template, session
+from flask import Flask, request, redirect, render_template, session, flash
 from flask_sqlalchemy import SQLAlchemy
 import re
 
@@ -54,10 +54,10 @@ def login():
         user = User.query.filter_by(email=email).first()
         if user and user.password == password:
             session['email'] = email
+            flash("Logged in",'info')
             return redirect('/')
         else:
-            # TODO - explain why login failed
-            return '<h1>Error!</h1>'
+            flash('User password incorrect, or user does not exist', 'error')
 
     return render_template('login.html')
 
@@ -65,7 +65,7 @@ def login():
 @app.route('/logout')
 def logout():
     del session['email']
-    return redirect('/')
+    return redirect('/login')
 
 
 @app.route('/register', methods=['POST', 'GET'])
@@ -77,42 +77,41 @@ def register():
         verify = request.form['verify']
 
         # TODO - validate user's data
-        error_msg = ''
         if not username:
-            error_msg += "error1=username is required&"
+            flash("username is required", 'error')
         elif re.search('\s', username):
-            error_msg += "error1=username must not contain space characters so I removed them&"
+            flash("username must not contain space characters so I removed them", 'error')
             username = re.sub('\s', '', username)
         elif invalid_string_length(username):
-            error_msg += "error1=username must be between 3 and 20 characters&"
+            flash("username must be between 3 and 20 characters", 'error')
         if not password:
-            error_msg += "error2=password is required&"
+            flash("password is required", 'error')
         elif re.search('\s', password):
-            error_msg += "error2=password must not contain space characters so I removed them&"
+            flash("password must not contain space characters so I removed them", 'error')
         elif invalid_string_length(password):
-            error_msg += "error2=password must be between 3 and 20 characters&"
+            flash("password must be between 3 and 20 characters", 'error')
         elif not verify:
-            error_msg += "error3=verify password is required&"
+            flash("verify password is required", 'error')
         elif re.search('\s', verify):
-            error_msg += "error3=verify password must not contain space characters so I removed them&"
+            flash("verify password must not contain space characters so I removed them", 'error')
         elif invalid_string_length(verify):
-            error_msg += "error3=verify password must be between 3 and 20 characters&"
+            flash("verify password must be between 3 and 20 characters", 'error')
         elif password != verify:
-            error_msg += "error3=verify password does not match password&"
+            flash("verify password does not match password", 'error')
         if email:
             if len(email.split('@')) != 2:
-                error_msg += "error4=email must contain exactly one @ symbol&"
+                flash("email must contain exactly one @ symbol", 'error')
             elif len(email.split('.')) != 2:
-                error_msg += "error4=email must contain exactly one period&"
+                flash("email must contain exactly one period", 'error')
             elif re.search('\s', email):
-                error_msg += "error4=email must not contain space characters so I removed them&"
+                flash("email must not contain space characters so I removed them", 'error')
             elif invalid_string_length(email):
-                error_msg += "error4=email must be between 3 and 20 characters&"
+                flash("email must be between 3 and 20 characters", 'error')
                 
  
 
         existing_user = User.query.filter_by(email=email).first()
-        if not existing_user and not (error_msg):
+        if not existing_user and 'flash' not in session:
             new_user = User(email, password)
             db.session.add(new_user)
             db.session.commit()
@@ -120,10 +119,7 @@ def register():
             return render_template('welcome.html', username = username)
         else:
             # TODO - user better response messaging
-            # "<h1>Duplicate user</h1>"
-
-            return redirect('/?' + error_msg + 'username=' + username + '&email=' + email)
-
+            flash("The email address  {}  has already been registered".format(email), 'error')
 
     return render_template('register.html')
 
