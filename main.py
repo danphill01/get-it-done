@@ -6,7 +6,8 @@ app = Flask(__name__)
 app.config['DEBUG'] = True
 # Note: the connection string after :// contains the following info:
 # user:password@server:portNumber/databaseName
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://get-it-done:beproductive@localhost:8889/get-it-done'
+# portNumber = 3306 on Ubuntu LAMP, 8889 on Windows MAMP
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://get-it-done:Be*Product1v3@localhost:3306/get-it-done'
 # Good for debug by causing SQL commands to echo to terminal
 app.config['SQLALCHEMY_ECHO'] = True
 db = SQLAlchemy(app)
