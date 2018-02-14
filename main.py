@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, render_template
+from flask import Flask, request, redirect, render_template, session
 from flask_sqlalchemy import SQLAlchemy
 import re
 
@@ -10,6 +10,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://get-it-done:beproductiv
 # Good for debug by causing SQL commands to echo to terminal
 app.config['SQLALCHEMY_ECHO'] = True
 db = SQLAlchemy(app)
+app.secret_key = 'mysecretkey'
 
 
 class Task(db.Model):
@@ -38,6 +39,13 @@ def invalid_string_length(string):
     return (len(string) < 3 or len(string) > 20)
 
 
+@app.before_request
+def require_login():
+    allowed_routes = ['login', 'register']
+    if request.endpoint not in allowed_routes and 'email' not in session:
+        return redirect('/login')
+
+
 @app.route('/login', methods=['POST', 'GET'])
 def login():
     if request.method == 'POST':
@@ -45,13 +53,19 @@ def login():
         password = request.form['password']
         user = User.query.filter_by(email=email).first()
         if user and user.password == password:
-            # TODO - "remember" that the user has logged in
+            session['email'] = email
             return redirect('/')
         else:
             # TODO - explain why login failed
             return '<h1>Error!</h1>'
 
     return render_template('login.html')
+
+
+@app.route('/logout')
+def logout():
+    del session['email']
+    return redirect('/')
 
 
 @app.route('/register', methods=['POST', 'GET'])
@@ -98,7 +112,7 @@ def register():
  
 
         existing_user = User.query.filter_by(email=email).first()
-        if not existing_user && not (error_msg):
+        if not existing_user and not (error_msg):
             new_user = User(email, password)
             db.session.add(new_user)
             db.session.commit()
